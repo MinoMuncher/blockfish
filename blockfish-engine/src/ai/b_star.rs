@@ -163,6 +163,34 @@ impl<'s> Search<'s> {
         Ok(Step::Other)
     }
 
+    pub fn raw_step(&mut self) -> Result<Option<u16>, SearchTerminated> {
+        if let Some(node) = self.node.take() {
+            // best-first iteration phase
+            if node.is_terminal() {
+                // stop at terminal nodes
+                let estimate = node.estimate;
+                self.back_up(node);
+                return Ok(Some(estimate))
+            }
+            // expansion
+            if let Some(pl) = self.pfind.next() {
+                let succ = node.succ(&self.params, &pl);
+                let estimate = succ.estimate;
+                self.push(succ);
+                self.node = Some(node);
+                Ok(Some(estimate))
+            } else {
+                self.pop()?;
+                Ok(None)
+            }
+        } else {
+            // reselection phase
+            self.select();
+            self.pop()?;
+            Ok(None)
+        }
+    }
+
     /// Adds `node` to the fringe set at the current level index.
     fn push(&mut self, node: Node) {
         let lvl = match self.lvls.get_mut(self.lvl_idx) {
@@ -235,16 +263,19 @@ struct Node {
     trace: Vec<u8>,
     f: i64,
     parent_f: i64,
+    estimate: u16,
 }
 
 impl Node {
     fn root(params: &Parameters, state: State) -> Self {
-        let h = eval(state.matrix()).score(params);
+        let (eval, e) = eval(state.matrix());
+        let h = eval.score(params);
         Self {
             state,
             trace: vec![],
             f: h,
             parent_f: h,
+            estimate: e
         }
     }
 
@@ -256,12 +287,14 @@ impl Node {
         let mut trace = self.trace.clone();
         trace.push(pl.idx as u8);
         let g = penalty(params, trace.len());
-        let h = eval(state.matrix()).score(params);
+        let (eval, e) = eval(state.matrix());
+        let h = eval.score(params);
         Self {
             state,
             trace,
             f: g + h,
             parent_f: self.f,
+            estimate: e
         }
     }
 

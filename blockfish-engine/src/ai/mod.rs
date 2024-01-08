@@ -5,6 +5,7 @@ use crate::{
 };
 
 mod analysis;
+mod raw_analysis;
 mod b_star;
 mod eval;
 mod state;
@@ -45,7 +46,7 @@ pub use eval::Eval;
 
 /// Performs the static analysis function on a snapshot.
 pub fn static_eval(snapshot: &Snapshot) -> Eval {
-    eval::eval(&snapshot.matrix)
+    eval::eval(&snapshot.matrix).0
 }
 
 // AI interface
@@ -91,6 +92,10 @@ impl AI {
             snapshot.into(),
             self.all_tx.take(),
         )
+    }
+
+    pub fn analyze_raw(&mut self, snapshot: Snapshot) -> u16{
+        raw_analysis::analysis(self.shape_table.clone(), self.config.clone(), snapshot.into())
     }
 
     /// Configures the next analysis (via `analyze()`) to send every suggestion it

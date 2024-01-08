@@ -30,12 +30,13 @@ pub fn penalty(params: &Parameters, depth: usize) -> i64 {
 }
 
 /// Evaluates a matrix, returning the different heuristic values.
-pub fn eval(matrix: &BasicMatrix) -> Eval {
-    Eval {
+pub fn eval(matrix: &BasicMatrix) -> (Eval, u16){
+    let estimate = piece_estimate(matrix.clone());
+    (Eval {
         rows: matrix.rows(),
-        piece_estimate: piece_estimate(matrix.clone()),
+        piece_estimate: estimate,
         i_dependencies: i_dependencies(&matrix, 0..matrix.rows()).count() as _,
-    }
+    },estimate)
 }
 
 /// Mystery's residue-based minimum piece estimate algorithm.
